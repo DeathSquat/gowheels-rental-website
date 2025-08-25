@@ -2,39 +2,41 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @custom-variant dark (&:is(.dark *));
+
 @theme {
---color-background: #edf0f2;
---color-foreground: #0f1420;
---color-card: #ffffff;
---color-card-foreground: #0f1420;
---color-popover: #ffffff;
---color-popover-foreground: #0f1420;
---color-primary: #0f1420;
+/* Dark Mode Theme - Complete Dark */
+--color-background: #0f1420;
+--color-foreground: #f8fafc;
+--color-card: #1e293b;
+--color-card-foreground: #f8fafc;
+--color-popover: #1e293b;
+--color-popover-foreground: #f8fafc;
+--color-primary: #3b82f6;
 --color-primary-foreground: #ffffff;
---color-secondary: #f3f5f7;
---color-secondary-foreground: #0f1420;
---color-muted: #f3f5f7;
---color-muted-foreground: #667085;
---color-accent: #e8f4ee;
---color-accent-foreground: #0f1420;
+--color-secondary: #334155;
+--color-secondary-foreground: #f8fafc;
+--color-muted: #334155;
+--color-muted-foreground: #94a3b8;
+--color-accent: #1e40af;
+--color-accent-foreground: #ffffff;
 --color-destructive: #ef4444;
 --color-destructive-foreground: #ffffff;
---color-border: #e3e6ea;
---color-input: #e3e6ea;
---color-ring: #0f1420;
---color-chart-1: #0f1420;
+--color-border: #475569;
+--color-input: #475569;
+--color-ring: #3b82f6;
+--color-chart-1: #3b82f6;
 --color-chart-2: #10b981;
---color-chart-3: #2563eb;
+--color-chart-3: #06b6d4;
 --color-chart-4: #f59e0b;
 --color-chart-5: #8b5cf6;
---color-sidebar: #edf0f2;
---color-sidebar-foreground: #3f3f46;
---color-sidebar-primary: #0f1420;
+--color-sidebar: #1e293b;
+--color-sidebar-foreground: #cbd5e1;
+--color-sidebar-primary: #3b82f6;
 --color-sidebar-primary-foreground: #ffffff;
---color-sidebar-accent: #ffffff;
---color-sidebar-accent-foreground: #0f1420;
---color-sidebar-border: #e3e6ea;
---color-sidebar-ring: #0f1420;
+--color-sidebar-accent: #334155;
+--color-sidebar-accent-foreground: #f8fafc;
+--color-sidebar-border: #475569;
+--color-sidebar-ring: #3b82f6;
 --radius-lg: 1.25rem;
 --radius-md: calc(1.25rem - 2px);
 --radius-sm: calc(1.25rem - 4px);
@@ -48,17 +50,18 @@ to { height: var(--radix-accordion-content-height); }
 from { height: var(--radix-accordion-content-height); }
 to { height: 0; }
 }
---color-brand: #0f1420;
---color-brand-soft: #e7eaf1;
+--color-brand: #3b82f6;
+--color-brand-soft: #1e40af;
 --color-brand-contrast: #ffffff;
---color-badge-new-bg: #fff29b;
---color-badge-new-text: #1f8f59;
+--color-badge-new-bg: #fbbf24;
+--color-badge-new-text: #0f1420;
 --color-success: #16a34a;
---color-success-soft: #dcfce7;
+--color-success-soft: #166534;
 --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
 --font-display: "Plus Jakarta Sans", Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
 --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
+
 /*
 The default border color has changed to currentColor in Tailwind CSS v4,
 so we've added these compatibility styles to make sure everything still
@@ -72,14 +75,16 @@ color utility to any element that depends on these defaults.
 ::before,
 ::backdrop,
 ::file-selector-button {
-border-color: #e5e5e5;
+border-color: #475569;
 }
 }
+
 @layer utilities {
 body {
 font-family: var(--font-sans);
 }
 }
+
 @layer base {
 :root {
 --background: var(--color-background);
@@ -117,6 +122,7 @@ font-family: var(--font-sans);
 --sidebar-ring: var(--color-sidebar-ring);
 }
 }
+
 @layer base {
 body {
 @apply bg-background text-foreground;
@@ -126,40 +132,48 @@ margin-inline: auto;
 padding-inline: 2rem;
 }
 }
+
 @layer base {
 html {
 -webkit-font-smoothing: antialiased;
 -moz-osx-font-smoothing: grayscale;
 text-rendering: optimizeLegibility;
 }
+
 h1, h2, h3, h4, h5, h6 {
 font-family: var(--font-display);
 color: var(--color-foreground);
 letter-spacing: -0.02em;
 }
+
 h1 { font-weight: 800; line-height: 1.08; }
 h2 { font-weight: 800; line-height: 1.1; }
 h3 { font-weight: 700; line-height: 1.15; }
 h4 { font-weight: 600; line-height: 1.2; }
 h5 { font-weight: 600; line-height: 1.25; }
 h6 { font-weight: 600; line-height: 1.3; }
+
 p {
 color: var(--color-foreground);
 }
+
 small, .text-muted {
 color: var(--color-muted-foreground);
 }
+
 a {
 color: var(--color-foreground);
 text-decoration-color: var(--color-brand);
 text-underline-offset: 3px;
 }
+
 mark {
 background-color: var(--color-badge-new-bg);
 color: var(--color-badge-new-text);
 border-radius: 9999px;
 padding: 0.1em 0.5em;
 }
+
 .font-display { font-family: var(--font-display); }
 .font-sans { font-family: var(--font-sans); }
 .font-mono { font-family: var(--font-mono); }
