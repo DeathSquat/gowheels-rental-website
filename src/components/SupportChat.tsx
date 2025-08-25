@@ -59,8 +59,9 @@ export default function SupportChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversation, setConversation] = useState<ConversationState | null>(null);
   const [messageInput, setMessageInput] = useState('');
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [isAgentTyping, setIsAgentTyping] = useState(false);
+  const [hasShownWelcomeToast, setHasShownWelcomeToast] = useState(false);
   
   // Queue for offline messages
   const [messageQueue, setMessageQueue] = useState<Omit<Message, 'id' | 'timestamp'>[]>([]);
@@ -83,6 +84,7 @@ export default function SupportChat() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const connectionAttemptRef = useRef<boolean>(false);
 
   // Enhanced AI Agent responses
   const generateAIResponse = useCallback((userMessage: string): string => {
@@ -140,7 +142,7 @@ export default function SupportChat() {
     
     // General helpful responses
     if (message.includes('hello') || message.includes('hi') || message.includes('hey')) {
-      return "Hello! I'm your AI assistant from Go Wheels. I'm here to help you with car rentals, bookings, pricing, and any questions you might have. I can instantly assist with most requests and connect you to humans when needed. How can I help you today?";
+      return "Hello! I'm your AI assistant from Go Wheels. I'm here to help you with car rentals, bookings, pricing, and any questions you might have. How can I help you today?";
     }
     
     if (message.includes('thank') || message.includes('thanks')) {
@@ -175,6 +177,10 @@ export default function SupportChat() {
 
   // Connection management
   const connectToRealtime = useCallback(() => {
+    // Prevent multiple simultaneous connection attempts
+    if (connectionAttemptRef.current) return;
+    
+    connectionAttemptRef.current = true;
     setConnectionStatus('connecting');
     
     // Simulate connection attempt
@@ -182,7 +188,14 @@ export default function SupportChat() {
       const isOnline = typeof window !== "undefined" ? navigator.onLine : true;
       if (isOnline) {
         setConnectionStatus('connected');
-        toast.success('🤖 AI Assistant connected and ready to help!');
+        
+        // Only show welcome toast once per session
+        if (!hasShownWelcomeToast) {
+          toast.success('🤖 AI Assistant is ready to help!', {
+            duration: 3000,
+          });
+          setHasShownWelcomeToast(true);
+        }
         
         // Process queued messages
         if (messageQueue.length > 0) {
@@ -195,8 +208,10 @@ export default function SupportChat() {
         setConnectionStatus('offline');
         toast.error('You are offline. Messages will be queued.');
       }
+      
+      connectionAttemptRef.current = false;
     }, 1000);
-  }, [messageQueue]);
+  }, [messageQueue, hasShownWelcomeToast]);
 
   const startPolling = useCallback(() => {
     if (pollingIntervalRef.current) return;
@@ -292,8 +307,6 @@ export default function SupportChat() {
 
       if (shouldEscalate && notificationsEnabled) {
         toast.success('🚨 Message escalated to our human agents');
-      } else {
-        toast.success('Message sent');
       }
 
       // Show AI typing indicator
@@ -393,6 +406,8 @@ export default function SupportChat() {
   }, [userEmail, conversation]);
 
   const initializeConversation = useCallback(() => {
+    if (conversation) return; // Prevent re-initialization
+    
     setIsLoadingHistory(true);
     
     // Initialize or load existing conversation
@@ -419,7 +434,7 @@ export default function SupportChat() {
       setMessages([welcomeMessage]);
       setIsLoadingHistory(false);
     }, 800);
-  }, []);
+  }, [conversation]);
 
   const handleAuthSubmit = useCallback(() => {
     if (!userEmail.trim()) {
@@ -429,7 +444,7 @@ export default function SupportChat() {
 
     setIsAuthenticated(true);
     setShowAuthDialog(false);
-    toast.success('🤖 Ready to chat with our AI assistant!');
+    toast.success('Ready to chat! 🚀');
   }, [userEmail]);
 
   // Effects
@@ -440,33 +455,15 @@ export default function SupportChat() {
   useEffect(() => {
     if (isOpen && !conversation) {
       initializeConversation();
-    }
-  }, [isOpen, conversation, initializeConversation]);
-
-  useEffect(() => {
-    if (isOpen) {
       connectToRealtime();
-      
-      // Fallback to polling if realtime fails
-      const fallbackTimeout = setTimeout(() => {
-        if (connectionStatus === 'connecting') {
-          setConnectionStatus('disconnected');
-          startPolling();
-          toast.warning('Realtime connection failed. Using polling mode.');
-        }
-      }, 5000);
-
-      return () => {
-        clearTimeout(fallbackTimeout);
-        stopPolling();
-      };
     }
-  }, [isOpen, connectionStatus, connectToRealtime, startPolling, stopPolling]);
+  }, [isOpen, conversation, initializeConversation, connectToRealtime]);
 
   useEffect(() => {
     const handleOnline = () => {
-      setConnectionStatus('connected');
-      connectToRealtime();
+      if (connectionStatus !== 'connected') {
+        connectToRealtime();
+      }
     };
 
     const handleOffline = () => {
@@ -483,7 +480,17 @@ export default function SupportChat() {
         window.removeEventListener('offline', handleOffline);
       };
     }
-  }, [connectToRealtime]);
+  }, [connectionStatus, connectToRealtime]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopPolling();
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+    };
+  }, [stopPolling]);
 
   // Calculate unread count and recent message preview
   const unreadCount = conversation?.unreadCount || 0;
@@ -600,11 +607,13 @@ export default function SupportChat() {
                             connectionStatus === 'connecting' ? 'bg-yellow-500 animate-pulse' :
                             connectionStatus === 'offline' ? 'bg-gray-400' : 'bg-red-500'
                           }`} />
-                          <motion.div
-                            animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0, 0.5] }}
-                            transition={{ duration: 2, repeat: Infinity, delay: 0 }}
-                            className="absolute inset-0 bg-green-500 rounded-full"
-                          />
+                          {connectionStatus === 'connected' && (
+                            <motion.div
+                              animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0, 0.5] }}
+                              transition={{ duration: 2, repeat: Infinity, delay: 0 }}
+                              className="absolute inset-0 bg-green-500 rounded-full"
+                            />
+                          )}
                         </div>
                         <div className="flex items-center gap-1">
                           <Bot className="h-4 w-4 text-primary" />
