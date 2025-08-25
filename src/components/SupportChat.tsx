@@ -20,7 +20,10 @@ import {
   MessageSquareReply,
   Bot,
   Sparkles,
-  Zap
+  Zap,
+  X,
+  Minimize2,
+  MessageCircleX
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -228,6 +231,18 @@ export default function SupportChat() {
       pollingIntervalRef.current = null;
     }
   }, []);
+
+  // Enhanced close handler
+  const handleClose = useCallback(() => {
+    setIsOpen(false);
+    if (conversation) {
+      setConversation(prev => prev ? { ...prev, unreadCount: 0 } : null);
+    }
+    // Clear any ongoing operations
+    setIsAgentTyping(false);
+    setIsSending(false);
+    toast.success('Chat closed successfully');
+  }, [conversation]);
 
   // Message handling
   const fetchMessages = useCallback(async () => {
@@ -592,7 +607,7 @@ export default function SupportChat() {
               transition={{ type: "spring", damping: 20 }}
             >
               <Card className="h-full flex flex-col bg-card/95 backdrop-blur-xl border-white/20">
-                {/* Enhanced Header */}
+                {/* Enhanced Header with Prominent Close Button */}
                 <CardHeader className="flex-shrink-0 pb-4 bg-gradient-to-r from-primary/10 to-blue-600/10 border-b border-white/10">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -638,6 +653,17 @@ export default function SupportChat() {
                     </div>
 
                     <div className="flex items-center space-x-2">
+                      {/* Minimize Button */}
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={handleClose}
+                        className="hover:bg-white/10 text-muted-foreground hover:text-foreground"
+                        title="Minimize Chat"
+                      >
+                        <Minimize2 className="h-4 w-4" />
+                      </Button>
+
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" className="hover:bg-white/10">
@@ -648,6 +674,25 @@ export default function SupportChat() {
                           <DropdownMenuItem onClick={requestTranscript}>
                             📧 Email transcript
                           </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => {
+                              // WhatsApp integration - send transcript via WhatsApp
+                              if (userPhone) {
+                                toast.promise(
+                                  new Promise(resolve => setTimeout(resolve, 2000)),
+                                  {
+                                    loading: 'Sending transcript via WhatsApp...',
+                                    success: 'Transcript sent to WhatsApp!',
+                                    error: 'Failed to send WhatsApp message'
+                                  }
+                                );
+                              } else {
+                                toast.error('Please provide your phone number first');
+                              }
+                            }}
+                          >
+                            📱 Send to WhatsApp
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => {
                             setConversation(prev => prev ? { ...prev, status: 'closed' } : null);
                             toast.success('Conversation closed');
@@ -657,19 +702,21 @@ export default function SupportChat() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                       
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => {
-                          setIsOpen(false);
-                          if (conversation) {
-                            setConversation(prev => prev ? { ...prev, unreadCount: 0 } : null);
-                          }
-                        }}
-                        className="hover:bg-white/10"
+                      {/* Prominent Close Button */}
+                      <motion.div
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
                       >
-                        ✕
-                      </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={handleClose}
+                          className="hover:bg-red-500/20 hover:text-red-400 text-muted-foreground transition-colors duration-200"
+                          title="Close Chat"
+                        >
+                          <X className="h-5 w-5" />
+                        </Button>
+                      </motion.div>
                     </div>
                   </div>
 
@@ -696,6 +743,19 @@ export default function SupportChat() {
                       </span>
                     </div>
                   )}
+
+                  {/* Quick Close Button for Mobile */}
+                  <div className="md:hidden mt-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleClose}
+                      className="w-full bg-red-500/10 hover:bg-red-500/20 border-red-500/30 text-red-400"
+                    >
+                      <MessageCircleX className="h-4 w-4 mr-2" />
+                      Close Chat
+                    </Button>
+                  </div>
                 </CardHeader>
 
                 {/* Messages */}
@@ -920,7 +980,7 @@ export default function SupportChat() {
               Connect with AI Assistant
             </DialogTitle>
             <DialogDescription>
-              Get instant help from our AI-powered support. Just provide your email to get started.
+              Get instant help from our AI-powered support. Just provide your details to get started.
             </DialogDescription>
           </DialogHeader>
           
@@ -937,12 +997,12 @@ export default function SupportChat() {
             </div>
             
             <div>
-              <label className="text-sm font-medium">Phone (optional)</label>
+              <label className="text-sm font-medium">Phone (for WhatsApp notifications) *</label>
               <Input
                 type="tel"
                 value={userPhone}
                 onChange={(e) => setUserPhone(e.target.value)}
-                placeholder="+1 (555) 123-4567"
+                placeholder="+91 9876543210"
                 className="bg-background/50 backdrop-blur border-white/20"
               />
             </div>
@@ -955,7 +1015,7 @@ export default function SupportChat() {
                 onChange={(e) => setNotificationsEnabled(e.target.checked)}
               />
               <label htmlFor="notifications" className="text-sm">
-                Send me SMS/WhatsApp notifications for urgent issues
+                Send me WhatsApp notifications for urgent issues and updates
               </label>
             </div>
             

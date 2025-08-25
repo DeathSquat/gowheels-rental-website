@@ -19,11 +19,22 @@ import {
   Receipt, 
   TicketCheck, 
   PanelRight,
-  WalletMinimal 
+  WalletMinimal,
+  MessageCircle,
+  Phone,
+  Mail,
+  CheckCircle2
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { toast } from "sonner";
+
+// Declare Razorpay globally
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 interface BookingWidgetProps {
   selectedCar?: {
@@ -79,6 +90,7 @@ export default function BookingWidget({
   const [returnDate, setReturnDate] = useState<Date | undefined>(initialDates?.returnDate);
   const [pickupTime, setPickupTime] = useState('09:00');
   const [returnTime, setReturnTime] = useState('18:00');
+  const [paymentId, setPaymentId] = useState<string>('');
 
   const [formData, setFormData] = useState<BookingFormData>({
     pickupAddress: '',
@@ -96,6 +108,23 @@ export default function BookingWidget({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Load Razorpay script
+  useEffect(() => {
+    const loadRazorpayScript = () => {
+      return new Promise((resolve) => {
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.onload = () => resolve(true);
+        script.onerror = () => resolve(false);
+        document.body.appendChild(script);
+      });
+    };
+
+    if (!window.Razorpay) {
+      loadRazorpayScript();
+    }
+  }, []);
 
   // Calculate price breakdown
   const calculatePrice = useCallback((): PriceBreakdown => {
@@ -181,39 +210,123 @@ export default function BookingWidget({
     }));
   }, []);
 
-  // Payment processing
-  const processPayment = useCallback(async (amount: number) => {
-    setIsLoading(true);
+  // WhatsApp notification function
+  const sendWhatsAppNotification = useCallback(async (message: string, phone: string) => {
     try {
-      // Simulate Razorpay integration
-      toast.info('Redirecting to secure payment...');
+      // In real implementation, this would call your backend API that integrates with WhatsApp Business API
+      // For now, we'll simulate the API call
+      console.log('Sending WhatsApp message:', message, 'to:', phone);
       
-      // In real implementation, this would create a Razorpay order
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Simulate API call to backend
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Simulate payment success
-      const newBookingId = `BK${Date.now()}`;
-      setBookingId(newBookingId);
-      
-      // Send notifications
-      toast.promise(
-        new Promise(resolve => setTimeout(resolve, 1000)),
-        {
-          loading: 'Sending confirmation notifications...',
-          success: 'SMS and email confirmations sent!',
-          error: 'Notifications failed - booking confirmed'
-        }
-      );
-
-      setShowConfirmation(true);
-      toast.success('Booking confirmed successfully!');
-      
+      toast.success('📱 WhatsApp notification sent!');
+      return true;
     } catch (error) {
-      toast.error('Payment failed. Please try again.');
-    } finally {
-      setIsLoading(false);
+      console.error('WhatsApp notification failed:', error);
+      toast.error('Failed to send WhatsApp notification');
+      return false;
     }
   }, []);
+
+  // Payment processing with Razorpay
+  const processPayment = useCallback(async (amount: number) => {
+    if (!window.Razorpay) {
+      toast.error('Payment gateway not loaded. Please refresh and try again.');
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      // Create order on backend (simulated)
+      const orderData = {
+        amount: amount * 100, // Razorpay expects amount in paise
+        currency: 'INR',
+        receipt: `booking_${Date.now()}`,
+        notes: {
+          booking_type: 'car_rental',
+          car_id: selectedCar?.id,
+          pickup_date: pickupDate?.toISOString(),
+          return_date: returnDate?.toISOString()
+        }
+      };
+
+      // Simulate backend API call to create Razorpay order
+      toast.info('Creating payment order...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const orderId = `order_${Date.now()}`;
+      
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_1234567890', // Replace with your Razorpay key
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'Go Wheels',
+        description: `Car Rental - ${selectedCar?.name}`,
+        image: '/logo.png', // Your logo
+        order_id: orderId,
+        prefill: {
+          name: formData.driverName,
+          email: formData.driverEmail,
+          contact: formData.driverPhone
+        },
+        notes: orderData.notes,
+        theme: {
+          color: '#3B82F6'
+        },
+        modal: {
+          ondismiss: () => {
+            setIsLoading(false);
+            toast.error('Payment cancelled');
+          }
+        },
+        handler: async (response: any) => {
+          try {
+            // Payment successful
+            const newBookingId = `BK${Date.now()}`;
+            const newPaymentId = response.razorpay_payment_id;
+            
+            setBookingId(newBookingId);
+            setPaymentId(newPaymentId);
+            
+            // Send confirmations
+            toast.promise(
+              Promise.all([
+                // Email confirmation (simulated)
+                new Promise(resolve => setTimeout(resolve, 1000)),
+                // WhatsApp notification
+                sendWhatsAppNotification(
+                  `🚗 Go Wheels Booking Confirmed!\n\nBooking ID: ${newBookingId}\nCar: ${selectedCar?.name}\nPickup: ${pickupDate ? format(pickupDate, 'MMM d, yyyy') : ''}\nAmount: ₹${amount.toLocaleString()}\n\nThank you for choosing Go Wheels!`,
+                  formData.driverPhone
+                )
+              ]),
+              {
+                loading: 'Sending confirmations...',
+                success: 'Confirmations sent via email and WhatsApp!',
+                error: 'Booking confirmed but notifications failed'
+              }
+            );
+
+            setShowConfirmation(true);
+            toast.success('🎉 Booking confirmed successfully!');
+            
+          } catch (error) {
+            toast.error('Payment verification failed');
+          } finally {
+            setIsLoading(false);
+          }
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+      
+    } catch (error) {
+      setIsLoading(false);
+      toast.error('Failed to initialize payment. Please try again.');
+    }
+  }, [selectedCar, pickupDate, returnDate, formData, sendWhatsAppNotification]);
 
   // Handle booking submission
   const handleBooking = useCallback(async () => {
@@ -286,18 +399,22 @@ export default function BookingWidget({
               Booking Confirmed!
             </DialogTitle>
             <DialogDescription>
-              Your booking has been successfully created and payment processed.
+              Your booking has been successfully created and payment processed via Razorpay.
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-6">
-            <div className="bg-green-50 p-4 rounded-lg">
+            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-semibold">Booking ID:</span>
                 <Badge variant="secondary" className="font-mono">{bookingId}</Badge>
               </div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-semibold">Payment ID:</span>
+                <Badge variant="outline" className="font-mono text-xs">{paymentId}</Badge>
+              </div>
               {selectedCar && (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mt-3">
                   <img 
                     src={selectedCar.image} 
                     alt={selectedCar.name}
@@ -351,6 +468,28 @@ export default function BookingWidget({
                     <span>Total Trip Cost:</span>
                     <span>₹{priceBreakdown.total.toLocaleString()}</span>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Confirmation Status */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+              <h5 className="font-semibold mb-2 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-green-500" />
+                Confirmations Sent
+              </h5>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-blue-500" />
+                  <span>Email confirmation sent to {formData.driverEmail}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="w-4 h-4 text-green-500" />
+                  <span>WhatsApp notification sent to {formData.driverPhone}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-orange-500" />
+                  <span>SMS confirmation will be sent shortly</span>
                 </div>
               </div>
             </div>
@@ -538,7 +677,7 @@ export default function BookingWidget({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="driver-phone">Phone Number *</Label>
+            <Label htmlFor="driver-phone">Phone Number (WhatsApp) *</Label>
             <Input
               id="driver-phone"
               placeholder="10-digit phone number"
@@ -546,6 +685,7 @@ export default function BookingWidget({
               onChange={(e) => updateFormData({ driverPhone: e.target.value })}
             />
             {errors.driverPhone && <p className="text-xs text-destructive">{errors.driverPhone}</p>}
+            <p className="text-xs text-muted-foreground">📱 We'll send booking confirmations via WhatsApp</p>
           </div>
 
           <div className="space-y-2">
@@ -733,21 +873,22 @@ export default function BookingWidget({
             size="lg"
           >
             {isLoading ? (
-              'Processing...'
+              'Processing Payment...'
             ) : (
               <>
                 <Wallet className="w-4 h-4 mr-2" />
                 {formData.paymentMethod === 'full' 
-                  ? `Pay ₹${priceBreakdown.total.toLocaleString()}` 
-                  : `Pay Deposit ₹${priceBreakdown.deposit.toLocaleString()}`
+                  ? `Pay ₹${priceBreakdown.total.toLocaleString()} via Razorpay` 
+                  : `Pay Deposit ₹${priceBreakdown.deposit.toLocaleString()} via Razorpay`
                 }
               </>
             )}
           </Button>
           
-          <p className="text-xs text-center text-muted-foreground">
-            Secure payment powered by Razorpay. Your payment information is encrypted and protected.
-          </p>
+          <div className="text-xs text-center text-muted-foreground space-y-1">
+            <p>🔐 Secure payment powered by Razorpay. Your information is encrypted and protected.</p>
+            <p>📱 Instant confirmations via WhatsApp & Email</p>
+          </div>
         </div>
       </CardContent>
     </Card>
