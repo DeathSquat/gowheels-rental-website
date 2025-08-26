@@ -9,25 +9,21 @@ export async function GET(
 ) {
   try {
     const id = context.params.id;
-
     if (!id || isNaN(parseInt(id))) {
       return NextResponse.json({ 
         error: "Valid ID is required",
         code: "INVALID_ID" 
       }, { status: 400 });
     }
-
     const booking = await db.select()
       .from(bookings)
       .where(eq(bookings.id, parseInt(id)))
       .limit(1);
-
     if (booking.length === 0) {
       return NextResponse.json({ 
         error: 'Booking not found' 
       }, { status: 404 });
     }
-
     return NextResponse.json(booking[0]);
   } catch (error) {
     console.error('GET error:', error);
@@ -43,29 +39,23 @@ export async function PUT(
 ) {
   try {
     const id = context.params.id;
-
     if (!id || isNaN(parseInt(id))) {
       return NextResponse.json({ 
         error: "Valid ID is required",
         code: "INVALID_ID" 
       }, { status: 400 });
     }
-
     const existingBooking = await db.select()
       .from(bookings)
       .where(eq(bookings.id, parseInt(id)))
       .limit(1);
-
     if (existingBooking.length === 0) {
       return NextResponse.json({ 
         error: 'Booking not found' 
       }, { status: 404 });
     }
-
     const body = await request.json();
     const updates: any = {};
-
-    // Optional fields that can be updated
     if (body.pickupDate !== undefined) updates.pickupDate = body.pickupDate;
     if (body.returnDate !== undefined) updates.returnDate = body.returnDate;
     if (body.pickupTime !== undefined) updates.pickupTime = body.pickupTime;
@@ -85,21 +75,16 @@ export async function PUT(
     if (body.totalAmount !== undefined) updates.totalAmount = body.totalAmount;
     if (body.paymentMethod !== undefined) updates.paymentMethod = body.paymentMethod?.trim();
     if (body.status !== undefined) updates.status = body.status?.trim();
-
-    // Always update timestamp
     updates.updatedAt = new Date().toISOString();
-
     const updated = await db.update(bookings)
       .set(updates)
       .where(eq(bookings.id, parseInt(id)))
       .returning();
-
     if (updated.length === 0) {
       return NextResponse.json({ 
         error: 'Failed to update booking' 
       }, { status: 500 });
     }
-
     return NextResponse.json(updated[0]);
   } catch (error) {
     console.error('PUT error:', error);
@@ -115,25 +100,21 @@ export async function DELETE(
 ) {
   try {
     const id = context.params.id;
-
     if (!id || isNaN(parseInt(id))) {
       return NextResponse.json({ 
         error: "Valid ID is required",
         code: "INVALID_ID" 
       }, { status: 400 });
     }
-
     const existingBooking = await db.select()
       .from(bookings)
       .where(eq(bookings.id, parseInt(id)))
       .limit(1);
-
     if (existingBooking.length === 0) {
       return NextResponse.json({ 
         error: 'Booking not found' 
       }, { status: 404 });
     }
-
     const cancelled = await db.update(bookings)
       .set({
         status: 'cancelled',
@@ -141,13 +122,11 @@ export async function DELETE(
       })
       .where(eq(bookings.id, parseInt(id)))
       .returning();
-
     if (cancelled.length === 0) {
       return NextResponse.json({ 
         error: 'Failed to cancel booking' 
       }, { status: 500 });
     }
-
     return NextResponse.json({
       message: 'Booking cancelled successfully',
       booking: cancelled[0]
