@@ -51,7 +51,6 @@ export async function PUT(
       }, { status: 400 });
     }
 
-    // Check if booking exists
     const existingBooking = await db.select()
       .from(bookings)
       .where(eq(bookings.id, parseInt(id)))
@@ -124,7 +123,6 @@ export async function DELETE(
       }, { status: 400 });
     }
 
-    // Check if booking exists
     const existingBooking = await db.select()
       .from(bookings)
       .where(eq(bookings.id, parseInt(id)))
@@ -136,7 +134,6 @@ export async function DELETE(
       }, { status: 404 });
     }
 
-    // Cancel booking by setting status to 'cancelled'
     const cancelled = await db.update(bookings)
       .set({
         status: 'cancelled',
