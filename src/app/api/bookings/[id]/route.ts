@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Record<string, string> }
 ) {
   try {
     const id = params.id;
@@ -38,7 +38,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Record<string, string> }
 ) {
   try {
     const id = params.id;
@@ -60,7 +60,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const updates: any = {};
+    const updates: Record<string, any> = {};
 
     if (body.pickupDate !== undefined) updates.pickupDate = body.pickupDate;
     if (body.returnDate !== undefined) updates.returnDate = body.returnDate;
@@ -106,7 +106,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Record<string, string> }
 ) {
   try {
     const id = params.id;
