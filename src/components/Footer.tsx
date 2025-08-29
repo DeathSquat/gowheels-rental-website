@@ -63,7 +63,6 @@ export default function Footer({ className }: FooterProps) {
   const serviceBadges = [
     { name: 'Razorpay', color: 'bg-blue-100 text-blue-800' },
     { name: 'Google Maps', color: 'bg-green-100 text-green-800' },
-    { name: 'Twilio', color: 'bg-red-100 text-red-800' },
     { name: 'Convex', color: 'bg-purple-100 text-purple-800' },
     { name: 'MongoDB', color: 'bg-green-100 text-green-800' }
   ];
@@ -132,10 +131,10 @@ export default function Footer({ className }: FooterProps) {
                   </a>
                 </div>
                 <div className="text-muted-foreground">
-                  <p>+1 (555) 123-4567</p>
+                  <p>+91 6386771480</p>
                   <p className="leading-relaxed">
                     123 Business District<br />
-                    San Francisco, CA 94105
+                    India
                   </p>
                 </div>
               </div>
@@ -192,7 +191,7 @@ export default function Footer({ className }: FooterProps) {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
             <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
               <p className="text-muted-foreground text-sm">
-                © 2024 FleetFlow. All rights reserved.
+                © 2025 FleetFlow. All rights reserved.
               </p>
               <div className="flex space-x-4">
                 {legalLinks.map((link) => (
